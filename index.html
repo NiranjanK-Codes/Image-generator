@@ -19,7 +19,7 @@
     max-width: 100%;
     height: auto;
     display: block;
-    touch-action: none; /* prevent scrolling while dragging on mobile */
+    touch-action: none; /* prevent scrolling while dragging/pinching */
   }
   input, button {
     padding: 10px 15px;
@@ -48,8 +48,8 @@ let scaleFactor = 1;
 
 // Circle frame (center and radius)
 const frame = {
-    x: 263, // center x
-    y: 994, // center y
+    x: 263, // original center x
+    y: 994, // original center y
     r: Math.sqrt((467-263)**2 + (1001-994)**2), // radius ~204
     img: null
 };
@@ -59,8 +59,8 @@ let posX = 0;
 let posY = 0;
 let isDragging = false;
 let startX, startY;
+let lastDistance = null; // for pinch zoom
 
-// Draw the poster and frame
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(poster, 0, 0, canvas.width, canvas.height);
@@ -79,7 +79,7 @@ function draw() {
         ctx.restore();
     }
 
-    // Draw visible frame outline
+    // Draw frame outline
     ctx.beginPath();
     ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
     ctx.lineWidth = 5;
@@ -142,31 +142,56 @@ canvas.addEventListener("mousemove", e => {
 });
 window.addEventListener("mouseup", () => isDragging = false);
 
-// Drag with touch (mobile)
+// Drag & pinch zoom for touch devices
 canvas.addEventListener("touchstart", e => {
     e.preventDefault();
-    isDragging = true;
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    startX = touch.clientX - rect.left;
-    startY = touch.clientY - rect.top;
+    if(e.touches.length === 1){
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        startX = touch.clientX - rect.left;
+        startY = touch.clientY - rect.top;
+        isDragging = true;
+    } else if(e.touches.length === 2){
+        lastDistance = getDistance(e.touches);
+    }
 });
+
 canvas.addEventListener("touchmove", e => {
-    if(!isDragging) return;
     e.preventDefault();
-    const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    posX += x - startX;
-    posY += y - startY;
-    startX = x;
-    startY = y;
-    draw();
+
+    if(e.touches.length === 1 && isDragging){
+        const touch = e.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        posX += x - startX;
+        posY += y - startY;
+        startX = x;
+        startY = y;
+        draw();
+    } else if(e.touches.length === 2){
+        const distance = getDistance(e.touches);
+        if(lastDistance){
+            const scaleChange = distance / lastDistance;
+            imgScale *= scaleChange;
+            imgScale = Math.max(0.2, Math.min(4, imgScale));
+            draw();
+        }
+        lastDistance = distance;
+    }
 });
+
 canvas.addEventListener("touchend", e => {
-    isDragging = false;
+    if(e.touches.length < 2) lastDistance = null;
+    if(e.touches.length === 0) isDragging = false;
 });
+
+// Helper for pinch zoom
+function getDistance(touches){
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+}
 
 // Download the poster
 document.getElementById("downloadBtn").addEventListener("click", () => {
