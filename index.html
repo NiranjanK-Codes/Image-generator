@@ -19,6 +19,7 @@
     max-width: 100%;
     height: auto;
     display: block;
+    touch-action: none; /* prevent scrolling while dragging on mobile */
   }
   input, button {
     padding: 10px 15px;
@@ -38,11 +39,14 @@
 const canvas = document.getElementById("finalCanvas");
 const ctx = canvas.getContext("2d");
 
+// Poster image
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-19 at 01.38.18_40e3d844.jpg";
 
+// Scaling factor for mobile
 let scaleFactor = 1;
 
+// Circle frame (center and radius)
 const frame = {
     x: 263, // center x
     y: 994, // center y
@@ -56,21 +60,7 @@ let posY = 0;
 let isDragging = false;
 let startX, startY;
 
-poster.onload = () => {
-    // Scale canvas to fit screen width
-    const screenWidth = Math.min(window.innerWidth, poster.width);
-    scaleFactor = screenWidth / poster.width;
-    canvas.width = poster.width * scaleFactor;
-    canvas.height = poster.height * scaleFactor;
-
-    // scale frame
-    frame.x *= scaleFactor;
-    frame.y *= scaleFactor;
-    frame.r *= scaleFactor;
-
-    draw();
-};
-
+// Draw the poster and frame
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(poster, 0, 0, canvas.width, canvas.height);
@@ -89,7 +79,7 @@ function draw() {
         ctx.restore();
     }
 
-    // frame outline
+    // Draw visible frame outline
     ctx.beginPath();
     ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
     ctx.lineWidth = 5;
@@ -97,7 +87,22 @@ function draw() {
     ctx.stroke();
 }
 
-// Upload user photo
+// Load poster and scale for mobile
+poster.onload = () => {
+    const screenWidth = Math.min(window.innerWidth, poster.width);
+    scaleFactor = screenWidth / poster.width;
+    canvas.width = poster.width * scaleFactor;
+    canvas.height = poster.height * scaleFactor;
+
+    // Scale frame coordinates
+    frame.x *= scaleFactor;
+    frame.y *= scaleFactor;
+    frame.r *= scaleFactor;
+
+    draw();
+};
+
+// Upload user image
 document.getElementById("imgInput").addEventListener("change", e => {
     const file = e.target.files[0];
     if(!file) return;
@@ -113,7 +118,7 @@ document.getElementById("imgInput").addEventListener("change", e => {
     img.src = URL.createObjectURL(file);
 });
 
-// Zoom
+// Zoom with mouse wheel
 canvas.addEventListener("wheel", e => {
     e.preventDefault();
     imgScale += Math.sign(e.deltaY) * -0.05;
@@ -121,7 +126,7 @@ canvas.addEventListener("wheel", e => {
     draw();
 });
 
-// Drag
+// Drag with mouse
 canvas.addEventListener("mousedown", e => {
     isDragging = true;
     startX = e.offsetX;
@@ -137,7 +142,33 @@ canvas.addEventListener("mousemove", e => {
 });
 window.addEventListener("mouseup", () => isDragging = false);
 
-// Download
+// Drag with touch (mobile)
+canvas.addEventListener("touchstart", e => {
+    e.preventDefault();
+    isDragging = true;
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    startX = touch.clientX - rect.left;
+    startY = touch.clientY - rect.top;
+});
+canvas.addEventListener("touchmove", e => {
+    if(!isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    posX += x - startX;
+    posY += y - startY;
+    startX = x;
+    startY = y;
+    draw();
+});
+canvas.addEventListener("touchend", e => {
+    isDragging = false;
+});
+
+// Download the poster
 document.getElementById("downloadBtn").addEventListener("click", () => {
     const link = document.createElement("a");
     link.download = "poster_output.png";
