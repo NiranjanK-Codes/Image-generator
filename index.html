@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poster with Single Photo Frame</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background: #f2f2f2;
+  }
+  canvas {
+    border: 1px solid #ccc;
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+  input, button {
+    padding: 10px 15px;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Upload Your Photo</h2>
+<input type="file" id="imgInput" accept="image/*">
+
+<canvas id="finalCanvas"></canvas>
+<button id="downloadBtn">Download Poster</button>
+
+<script>
+const canvas = document.getElementById("finalCanvas");
+const ctx = canvas.getContext("2d");
+
+const poster = new Image();
+poster.src = "WhatsApp Image 2025-11-19 at 01.38.18_40e3d844.jpg";
+
+let scaleFactor = 1;
+
+const frame = {
+    x: 263, // center x
+    y: 994, // center y
+    r: Math.sqrt((467-263)**2 + (1001-994)**2), // radius ~204
+    img: null
+};
+
+let imgScale = 1;
+let posX = 0;
+let posY = 0;
+let isDragging = false;
+let startX, startY;
+
+poster.onload = () => {
+    // Scale canvas to fit screen width
+    const screenWidth = Math.min(window.innerWidth, poster.width);
+    scaleFactor = screenWidth / poster.width;
+    canvas.width = poster.width * scaleFactor;
+    canvas.height = poster.height * scaleFactor;
+
+    // scale frame
+    frame.x *= scaleFactor;
+    frame.y *= scaleFactor;
+    frame.r *= scaleFactor;
+
+    draw();
+};
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(poster, 0, 0, canvas.width, canvas.height);
+
+    if(frame.img){
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
+        ctx.closePath();
+        ctx.clip();
+
+        const w = frame.img.width * imgScale * scaleFactor;
+        const h = frame.img.height * imgScale * scaleFactor;
+        ctx.drawImage(frame.img, posX, posY, w, h);
+
+        ctx.restore();
+    }
+
+    // frame outline
+    ctx.beginPath();
+    ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#00ff00";
+    ctx.stroke();
+}
+
+// Upload user photo
+document.getElementById("imgInput").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const img = new Image();
+    img.onload = () => {
+        frame.img = img;
+        imgScale = 1;
+        posX = frame.x - (img.width/2) * scaleFactor;
+        posY = frame.y - (img.height/2) * scaleFactor;
+        draw();
+    };
+    img.src = URL.createObjectURL(file);
+});
+
+// Zoom
+canvas.addEventListener("wheel", e => {
+    e.preventDefault();
+    imgScale += Math.sign(e.deltaY) * -0.05;
+    imgScale = Math.max(0.2, Math.min(4, imgScale));
+    draw();
+});
+
+// Drag
+canvas.addEventListener("mousedown", e => {
+    isDragging = true;
+    startX = e.offsetX;
+    startY = e.offsetY;
+});
+canvas.addEventListener("mousemove", e => {
+    if(!isDragging) return;
+    posX += e.offsetX - startX;
+    posY += e.offsetY - startY;
+    startX = e.offsetX;
+    startY = e.offsetY;
+    draw();
+});
+window.addEventListener("mouseup", () => isDragging = false);
+
+// Download
+document.getElementById("downloadBtn").addEventListener("click", () => {
+    const link = document.createElement("a");
+    link.download = "poster_output.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+});
+</script>
+
+</body>
+</html>
