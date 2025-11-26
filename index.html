@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mobile Poster Editor</title>
+<title>Poster with Single Photo Frame</title>
 
 <style>
 body {
@@ -11,7 +11,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 15px;
   padding: 20px;
   background: #f2f2f2;
 }
@@ -24,38 +24,39 @@ body {
 canvas {
   display: block;
   max-width: 100%;
-  touch-action: none; /* disables default pinch/scroll gestures */
-  background: #eee;
+  height: auto;
+  touch-action: none; /* disable default gestures */
   cursor: grab;
+}
+
+#downloadBtn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 8px 12px;
+  background: black;
+  color: white;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.8;
 }
 
 .button-row {
   display: flex;
-  gap: 6px;
-  justify-content: center;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
-.upload-btn, #cameraBtn, #downloadBtn {
-  background: white;
-  border: 1px solid #bbb;
-  padding: 6px 8px;
+.button-row input,
+.button-row button {
+  padding: 8px 10px;
   border-radius: 6px;
   font-size: 14px;
+  background: white;
+  border: 1px solid #ccc;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.upload-btn:hover,
-#cameraBtn:hover,
-#downloadBtn:hover {
-  background: #f0f0f0;
-}
-
-input[type="file"] {
-  display: none;
 }
 </style>
 </head>
@@ -64,15 +65,14 @@ input[type="file"] {
 <h2>Upload or Click a Picture</h2>
 
 <div class="button-row">
-  <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
-  <button id="cameraBtn">📸 Camera</button>
+  <label for="imgUploadInput">📁 Upload</label>
+  <input type="file" id="imgUploadInput" accept="image/*">
+  <button id="cameraBtn">📷 Camera</button>
   <button id="downloadBtn">Download</button>
 </div>
 
 <div class="canvas-wrapper">
   <canvas id="finalCanvas"></canvas>
-  <input type="file" id="imgUploadInput" accept="image/*">
-  <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
 </div>
 
 <script>
@@ -82,12 +82,7 @@ const ctx = canvas.getContext("2d");
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
-const frame = {
-  x: 371,
-  y: 1340,
-  r: Math.hypot(592 - 363, 1318 - 1330) * 0.9,
-  img: null
-};
+const frame = { x: 363, y: 1330, r: Math.hypot(592-363,1318-1330), img: null };
 
 let scaleFactor = 1;
 let imgScale = 1;
@@ -97,25 +92,21 @@ let isDragging = false;
 let startX = 0, startY = 0;
 
 let pinchStartDist = 0;
-let pinchStartScale = 1;
-let pinchCenter = { x: 0, y: 0 };
 
-// Load poster
+// Poster load
 poster.onload = () => {
   const w = poster.width;
   const h = poster.height;
-
-  scaleFactor = Math.min(window.innerWidth * 0.95 / w, 1);
+  scaleFactor = Math.min(window.innerWidth*0.9 / w,1);
   canvas.width = w * scaleFactor;
   canvas.height = h * scaleFactor;
-
   frame.x *= scaleFactor;
   frame.y *= scaleFactor;
   frame.r *= scaleFactor;
-
   draw();
 };
 
+// Draw
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.drawImage(poster,0,0,canvas.width,canvas.height);
@@ -125,31 +116,21 @@ function draw() {
     ctx.beginPath();
     ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
     ctx.clip();
-
-    ctx.drawImage(
-      frame.img,
-      posX,
-      posY,
-      frame.img.width * imgScale * scaleFactor,
-      frame.img.height * imgScale * scaleFactor
-    );
-
+    ctx.drawImage(frame.img, posX, posY, frame.img.width*imgScale*scaleFactor, frame.img.height*imgScale*scaleFactor);
     ctx.restore();
   }
 
-  // Frame border
   ctx.beginPath();
   ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#00ff00";
   ctx.stroke();
 }
 
-// Image upload
-function handleImageSelect(e){
+// Upload image
+document.getElementById("imgUploadInput").addEventListener("change", e=>{
   const file = e.target.files[0];
   if(!file) return;
-
   const img = new Image();
   img.onload = () => {
     frame.img = img;
@@ -159,29 +140,48 @@ function handleImageSelect(e){
     draw();
   };
   img.src = URL.createObjectURL(file);
-}
-
-document.getElementById("imgUploadInput").addEventListener("change", handleImageSelect);
-document.getElementById("cameraBtn").addEventListener("click", ()=> {
-  document.getElementById("imgCameraInput").click();
 });
-document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
 
-// Touch controls
+// Camera
+document.getElementById("cameraBtn").addEventListener("click", ()=>{
+  const input = document.getElementById("imgUploadInput");
+  input.capture = "environment";
+  input.click();
+});
+
+// Desktop zoom
+canvas.addEventListener("wheel", e=>{
+  e.preventDefault();
+  imgScale += -Math.sign(e.deltaY)*0.05;
+  imgScale = Math.max(0.3, Math.min(5,imgScale));
+  draw();
+});
+
+// Desktop drag
+canvas.addEventListener("mousedown", e=>{
+  isDragging = true;
+  startX = e.offsetX;
+  startY = e.offsetY;
+  canvas.style.cursor="grabbing";
+});
+canvas.addEventListener("mousemove", e=>{
+  if(!isDragging) return;
+  posX += e.offsetX - startX;
+  posY += e.offsetY - startY;
+  startX = e.offsetX;
+  startY = e.offsetY;
+  draw();
+});
+window.addEventListener("mouseup", ()=>{isDragging=false; canvas.style.cursor="grab";});
+
+// Touch pinch + drag
 canvas.addEventListener("touchstart", e=>{
-  if(!frame.img) return;
-
   if(e.touches.length===2){
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    pinchStartDist = Math.hypot(dx,dy);
-    pinchStartScale = imgScale;
-
-    const rect = canvas.getBoundingClientRect();
-    pinchCenter.x = (e.touches[0].clientX + e.touches[1].clientX)/2 - rect.left;
-    pinchCenter.y = (e.touches[0].clientY + e.touches[1].clientY)/2 - rect.top;
+    pinchStartDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
   } else if(e.touches.length===1){
-    isDragging = true;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }
@@ -192,21 +192,15 @@ canvas.addEventListener("touchmove", e=>{
   if(!frame.img) return;
 
   if(e.touches.length===2){
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    const dist = Math.hypot(dx,dy);
-
-    const targetScale = Math.max(0.3, Math.min(5, pinchStartScale * dist / pinchStartDist));
-
-    // Smooth lerp
-    imgScale += (targetScale - imgScale) * 0.25;
-
-    const ratio = imgScale / (imgScale - (targetScale - imgScale)*0.25);
-    posX = pinchCenter.x - (pinchCenter.x - posX) * ratio;
-    posY = pinchCenter.y - (pinchCenter.y - posY) * ratio;
-
+    const newDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    imgScale *= newDist/pinchStartDist;
+    imgScale = Math.max(0.3, Math.min(5,imgScale));
+    pinchStartDist = newDist;
     draw();
-  } else if(e.touches.length===1 && isDragging){
+  } else if(e.touches.length===1){
     posX += e.touches[0].clientX - startX;
     posY += e.touches[0].clientY - startY;
     startX = e.touches[0].clientX;
@@ -215,19 +209,13 @@ canvas.addEventListener("touchmove", e=>{
   }
 });
 
-canvas.addEventListener("touchend", e=>{
-  if(e.touches.length<2) pinchStartDist=0;
-  if(e.touches.length===0) isDragging=false;
-});
-
 // Download
 document.getElementById("downloadBtn").addEventListener("click", ()=>{
-  const link = document.createElement("a");
-  link.download = "poster_output.png";
-  link.href = canvas.toDataURL();
+  const link=document.createElement("a");
+  link.download="poster_output.png";
+  link.href=canvas.toDataURL();
   link.click();
 });
 </script>
-
 </body>
 </html>
