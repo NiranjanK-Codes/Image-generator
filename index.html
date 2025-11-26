@@ -92,7 +92,6 @@
         <label class="upload-btn" for="imgUploadInput">📁 Upload Photo</label>
         <button id="cameraBtn">📸 Camera</button>
 
-        <!-- Two completely separate inputs -->
         <input type="file" id="imgUploadInput" accept="image/*">
         <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
     </div>
@@ -105,11 +104,11 @@ const ctx = canvas.getContext("2d");
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
-// Correct coordinates
+// Move ellipse 25px down and 25px right
 const frame = {
-    x: 363,
-    y: 1330,
-    r: Math.hypot(592 - 363, 1318 - 1330),
+    x: 363 + 8, // original 363 + 25
+    y: 1330 + 10, // original 1330 + 25
+    r: Math.hypot(592 - 363, 1318 - 1330)*0.9,
     img: null
 };
 
@@ -165,7 +164,6 @@ function draw() {
     ctx.stroke();
 }
 
-// Shared image load handler
 function handleImageSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -182,16 +180,11 @@ function handleImageSelect(e) {
     img.src = URL.createObjectURL(file);
 }
 
-// Upload input
-document.getElementById("imgUploadInput")
-    .addEventListener("change", handleImageSelect);
-
-// Camera input
+document.getElementById("imgUploadInput").addEventListener("change", handleImageSelect);
 document.getElementById("cameraBtn").addEventListener("click", () => {
     document.getElementById("imgCameraInput").click();
 });
-document.getElementById("imgCameraInput")
-    .addEventListener("change", handleImageSelect);
+document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
 
 // Scroll zoom
 canvas.addEventListener("wheel", e => {
@@ -207,7 +200,6 @@ canvas.addEventListener("mousedown", e => {
     startX = e.offsetX;
     startY = e.offsetY;
 });
-
 canvas.addEventListener("mousemove", e => {
     if (!isDragging) return;
     posX += e.offsetX - startX;
@@ -216,12 +208,10 @@ canvas.addEventListener("mousemove", e => {
     startY = e.offsetY;
     draw();
 });
-
 window.addEventListener("mouseup", () => isDragging = false);
 
 // Touch control
 let lastDistance = 0;
-
 canvas.addEventListener("touchstart", e => {
     if (e.touches.length === 2) {
         lastDistance = Math.hypot(
@@ -233,7 +223,6 @@ canvas.addEventListener("touchstart", e => {
         startY = e.touches[0].clientY;
     }
 });
-
 canvas.addEventListener("touchmove", e => {
     e.preventDefault();
 
