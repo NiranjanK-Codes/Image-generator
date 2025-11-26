@@ -27,6 +27,7 @@
     height: auto;
   }
 
+  /* Download button */
   #downloadBtn {
     position: absolute;
     top: 10px;
@@ -38,36 +39,44 @@
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    opacity: 0.8;
+    opacity: 0.85;
   }
 
+  /* Centered upload zone */
   .center-buttons {
     position: absolute;
-    width: 140px;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    pointer-events: none; /* buttons appear on top but don't block drag/zoom */
+    gap: 8px;
+    align-items: center;
+    pointer-events: none;
   }
 
-  .center-buttons input,
-  .center-buttons button {
-    pointer-events: auto; /* clickable */
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 15px;
+  /* Both buttons – small, clean, modern */
+  .upload-btn, #cameraBtn {
+    pointer-events: auto;
     background: white;
-    border: 1px solid #ccc;
-  }
-
-  #cameraBtn {
+    border: 1px solid #bbb;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 6px;
+  }
+
+  .upload-btn:hover,
+  #cameraBtn:hover {
+    background: #f0f0f0;
+  }
+
+  input[type="file"] {
+    display: none;
   }
 
 </style>
@@ -81,12 +90,11 @@
 
     <canvas id="finalCanvas"></canvas>
 
-    <!-- Centered Buttons Over Circle -->
+    <!-- FB-style clean upload area -->
     <div class="center-buttons">
+        <label class="upload-btn" for="imgInput">📁 Upload Photo</label>
+        <button id="cameraBtn">📸 Camera</button>
         <input type="file" id="imgInput" accept="image/*">
-        <button id="cameraBtn">
-            📷 Take Photo
-        </button>
     </div>
 </div>
 
@@ -97,7 +105,7 @@ const ctx = canvas.getContext("2d");
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
-// New correct circle center + radius
+// Correct new coordinates from you
 const frame = {
     x: 363,
     y: 1330,
@@ -113,7 +121,6 @@ let posY = 0;
 let isDragging = false;
 let startX, startY;
 
-// Poster load
 poster.onload = () => {
     const w = poster.width;
     const h = poster.height;
@@ -130,7 +137,6 @@ poster.onload = () => {
     draw();
 };
 
-// Draw Function
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(poster, 0, 0, canvas.width, canvas.height);
@@ -152,15 +158,15 @@ function draw() {
         ctx.restore();
     }
 
-    // Green outline
+    // Thin clean outline (2px)
     ctx.beginPath();
     ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI * 2);
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 2;
     ctx.strokeStyle = "#00ff00";
     ctx.stroke();
 }
 
-// Upload Image
+// Upload
 document.getElementById("imgInput").addEventListener("change", e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -177,13 +183,14 @@ document.getElementById("imgInput").addEventListener("change", e => {
     img.src = URL.createObjectURL(file);
 });
 
-// Camera Button
+// Camera button
 document.getElementById("cameraBtn").addEventListener("click", () => {
-    document.getElementById("imgInput").capture = "environment";
-    document.getElementById("imgInput").click();
+    const input = document.getElementById("imgInput");
+    input.capture = "environment";
+    input.click();
 });
 
-// Desktop Zoom
+// Desktop zoom
 canvas.addEventListener("wheel", e => {
     e.preventDefault();
     imgScale += -Math.sign(e.deltaY) * 0.05;
@@ -191,7 +198,7 @@ canvas.addEventListener("wheel", e => {
     draw();
 });
 
-// Desktop Drag
+// Desktop drag
 canvas.addEventListener("mousedown", e => {
     isDragging = true;
     startX = e.offsetX;
@@ -209,7 +216,7 @@ canvas.addEventListener("mousemove", e => {
 
 window.addEventListener("mouseup", () => isDragging = false);
 
-// Touch Zoom + Drag
+// Touch support
 let lastDistance = 0;
 
 canvas.addEventListener("touchstart", e => {
@@ -218,7 +225,7 @@ canvas.addEventListener("touchstart", e => {
             e.touches[0].clientX - e.touches[1].clientX,
             e.touches[0].clientY - e.touches[1].clientY
         );
-    } else if (e.touches.length === 1) {
+    } else {
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
     }
@@ -238,8 +245,7 @@ canvas.addEventListener("touchmove", e => {
 
         lastDistance = newDist;
         draw();
-
-    } else if (e.touches.length === 1) {
+    } else {
         posX += e.touches[0].clientX - startX;
         posY += e.touches[0].clientY - startY;
         startX = e.touches[0].clientX;
