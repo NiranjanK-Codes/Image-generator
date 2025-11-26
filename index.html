@@ -26,18 +26,7 @@
     max-width: 100%;
     height: auto;
     cursor: grab;
-  }
-
-  #downloadBtn {
-    padding: 6px 10px;
-    background: black;
-    color: white;
-    font-size: 12px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    opacity: 0.85;
-    margin-bottom: 10px;
+    touch-action: none;
   }
 
   .button-row {
@@ -47,7 +36,7 @@
     margin-bottom: 10px;
   }
 
-  .upload-btn, #cameraBtn {
+  .upload-btn, #cameraBtn, #downloadBtn {
     background: white;
     border: 1px solid #bbb;
     padding: 4px 6px;
@@ -61,7 +50,8 @@
   }
 
   .upload-btn:hover,
-  #cameraBtn:hover {
+  #cameraBtn:hover,
+  #downloadBtn:hover {
     background: #f0f0f0;
   }
 
@@ -93,6 +83,7 @@ const ctx = canvas.getContext("2d");
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
+// Frame details
 const frame = {
     x: 371,
     y: 1340,
@@ -106,7 +97,12 @@ let posX = 0;
 let posY = 0;
 
 let isDragging = false;
-let startX, startY;
+let startX = 0, startY = 0;
+
+// Mobile pinch variables
+let pinchStartDistance = 0;
+let pinchStartScale = 1;
+let pinchCenter = { x: 0, y: 0 };
 
 poster.onload = () => {
     const w = poster.width;
@@ -153,6 +149,7 @@ function draw() {
     ctx.stroke();
 }
 
+// Image upload handling
 function handleImageSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -175,7 +172,7 @@ document.getElementById("cameraBtn").addEventListener("click", () => {
 });
 document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
 
-// Smooth zoom
+// Desktop smooth scroll zoom
 canvas.addEventListener("wheel", e => {
     e.preventDefault();
     if (!frame.img) return;
@@ -214,42 +211,45 @@ window.addEventListener("mouseup", () => {
     canvas.style.cursor = "grab";
 });
 
-// Touch control
-let lastDistance = 0;
+// Mobile touch & smooth pinch zoom
 canvas.addEventListener("touchstart", e => {
     if (!frame.img) return;
+
     if (e.touches.length === 2) {
-        lastDistance = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
-        );
-    } else {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchStartDistance = Math.hypot(dx, dy);
+        pinchStartScale = imgScale;
+
+        const rect = canvas.getBoundingClientRect();
+        pinchCenter.x = (e.touches[0].clientX + e.touches[1].clientX)/2 - rect.left;
+        pinchCenter.y = (e.touches[0].clientY + e.touches[1].clientY)/2 - rect.top;
+    } else if (e.touches.length === 1) {
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
     }
 });
+
 canvas.addEventListener("touchmove", e => {
     e.preventDefault();
     if (!frame.img) return;
 
     if (e.touches.length === 2) {
-        const newDist = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
-        );
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const currentDistance = Math.hypot(dx, dy);
 
-        const prevScale = imgScale;
-        imgScale *= newDist / lastDistance;
-        imgScale = Math.max(0.3, Math.min(5, imgScale));
+        // Target scale
+        const targetScale = Math.max(0.3, Math.min(5, pinchStartScale * currentDistance / pinchStartDistance));
 
-        const rect = canvas.getBoundingClientRect();
-        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
-        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+        // Smooth lerp to target
+        imgScale += (targetScale - imgScale) * 0.2;
 
-        posX = centerX - (centerX - posX) * (imgScale / prevScale);
-        posY = centerY - (centerY - posY) * (imgScale / prevScale);
+        // Adjust position relative to pinch center
+        const ratio = imgScale / (imgScale - (targetScale - imgScale) * 0.2);
+        posX = pinchCenter.x - (pinchCenter.x - posX) * ratio;
+        posY = pinchCenter.y - (pinchCenter.y - posY) * ratio;
 
-        lastDistance = newDist;
         draw();
     } else if (e.touches.length === 1) {
         posX += e.touches[0].clientX - startX;
