@@ -36,7 +36,7 @@ canvas {
   margin-bottom: 10px;
 }
 
-.upload-btn, #downloadBtn {
+.upload-btn, #cameraBtn, #downloadBtn {
   background: white;
   border: 1px solid #bbb;
   padding: 6px 8px;
@@ -46,6 +46,7 @@ canvas {
 }
 
 .upload-btn:hover,
+#cameraBtn:hover,
 #downloadBtn:hover {
   background: #f0f0f0;
 }
@@ -64,10 +65,11 @@ input[type="file"] {
 </head>
 <body>
 
-<h2>Upload and Adjust Your Picture</h2>
+<h2>Upload or Capture a Picture</h2>
 
 <div class="button-row">
   <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
+  <button id="cameraBtn">📸 Camera</button>
   <button id="downloadBtn">Download</button>
 </div>
 
@@ -79,6 +81,7 @@ input[type="file"] {
 <div class="canvas-wrapper">
   <canvas id="finalCanvas"></canvas>
   <input type="file" id="imgUploadInput" accept="image/*">
+  <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
 </div>
 
 <script>
@@ -147,7 +150,7 @@ function draw() {
   ctx.stroke();
 }
 
-// Handle image upload
+// Handle image selection
 function handleImageSelect(e){
   const file = e.target.files[0];
   if(!file) return;
@@ -196,6 +199,13 @@ sizeSlider.addEventListener("input", e=>{
 
 // Event listeners
 document.getElementById("imgUploadInput").addEventListener("change", handleImageSelect);
+document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
+
+// Camera button triggers file input with camera
+document.getElementById("cameraBtn").addEventListener("click", ()=>{
+  document.getElementById("imgCameraInput").click();
+});
+
 document.getElementById("downloadBtn").addEventListener("click", ()=>{
   const link = document.createElement("a");
   link.download = "poster_output.png";
