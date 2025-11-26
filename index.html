@@ -6,73 +6,85 @@
 <title>Poster with Single Photo Frame</title>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  padding: 20px;
-  background: #f2f2f2;
-}
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: #f2f2f2;
+  }
 
-.canvas-wrapper {
-  position: relative;
-  display: inline-block;
-}
+  .canvas-wrapper {
+    position: relative;
+    display: inline-block;
+  }
 
-canvas {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  touch-action: none; /* disable default gestures */
-  cursor: grab;
-}
+  canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
 
-#downloadBtn {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  padding: 8px 12px;
-  background: black;
-  color: white;
-  font-size: 14px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  opacity: 0.8;
-}
+  #downloadBtn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 8px 12px;
+    background: black;
+    color: white;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0.8;
+  }
 
-.button-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-}
+  .center-buttons {
+    position: absolute;
+    width: 140px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
 
-.button-row input,
-.button-row button {
-  padding: 8px 10px;
-  border-radius: 6px;
-  font-size: 14px;
-  background: white;
-  border: 1px solid #ccc;
-  cursor: pointer;
-}
+  .center-buttons input,
+  .center-buttons button {
+    pointer-events: auto;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 15px;
+    background: white;
+    border: 1px solid #ccc;
+  }
+
+  #cameraBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
 </style>
 </head>
 <body>
 
 <h2>Upload or Click a Picture</h2>
 
-<div class="button-row">
-  <label for="imgUploadInput">📁 Upload</label>
-  <input type="file" id="imgUploadInput" accept="image/*">
-  <button id="cameraBtn">📷 Camera</button>
-  <button id="downloadBtn">Download</button>
-</div>
-
 <div class="canvas-wrapper">
-  <canvas id="finalCanvas"></canvas>
+    <button id="downloadBtn">Download</button>
+
+    <canvas id="finalCanvas"></canvas>
+
+    <div class="center-buttons">
+        <input type="file" id="imgInput" accept="image/*">
+        <button id="cameraBtn">📷 Take Photo</button>
+    </div>
 </div>
 
 <script>
@@ -82,140 +94,147 @@ const ctx = canvas.getContext("2d");
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
-const frame = { x: 363, y: 1330, r: Math.hypot(592-363,1318-1330), img: null };
+const frame = {
+    x: 363,
+    y: 1330,
+    r: Math.hypot(592 - 363, 1318 - 1330),
+    img: null
+};
 
 let scaleFactor = 1;
 let imgScale = 1;
-let posX = 0, posY = 0;
+let posX = 0;
+let posY = 0;
 
-let isDragging = false;
-let startX = 0, startY = 0;
-
+let startX, startY;
 let pinchStartDist = 0;
 
 // Poster load
 poster.onload = () => {
-  const w = poster.width;
-  const h = poster.height;
-  scaleFactor = Math.min(window.innerWidth*0.9 / w,1);
-  canvas.width = w * scaleFactor;
-  canvas.height = h * scaleFactor;
-  frame.x *= scaleFactor;
-  frame.y *= scaleFactor;
-  frame.r *= scaleFactor;
-  draw();
+    const w = poster.width;
+    const h = poster.height;
+    scaleFactor = Math.min(window.innerWidth * 0.9 / w, 1);
+    canvas.width = w * scaleFactor;
+    canvas.height = h * scaleFactor;
+    frame.x *= scaleFactor;
+    frame.y *= scaleFactor;
+    frame.r *= scaleFactor;
+    draw();
 };
 
-// Draw
 function draw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(poster,0,0,canvas.width,canvas.height);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(poster,0,0,canvas.width,canvas.height);
 
-  if(frame.img){
-    ctx.save();
+    if(frame.img){
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
+        ctx.clip();
+        ctx.drawImage(frame.img, posX, posY, frame.img.width*imgScale*scaleFactor, frame.img.height*imgScale*scaleFactor);
+        ctx.restore();
+    }
+
     ctx.beginPath();
     ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
-    ctx.clip();
-    ctx.drawImage(frame.img, posX, posY, frame.img.width*imgScale*scaleFactor, frame.img.height*imgScale*scaleFactor);
-    ctx.restore();
-  }
-
-  ctx.beginPath();
-  ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = "#00ff00";
-  ctx.stroke();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#00ff00";
+    ctx.stroke();
 }
 
-// Upload image
-document.getElementById("imgUploadInput").addEventListener("change", e=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  const img = new Image();
-  img.onload = () => {
-    frame.img = img;
-    imgScale = 1;
-    posX = frame.x - (img.width*scaleFactor)/2;
-    posY = frame.y - (img.height*scaleFactor)/2;
-    draw();
-  };
-  img.src = URL.createObjectURL(file);
+// Upload Image
+document.getElementById("imgInput").addEventListener("change", e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    img.onload = () => {
+        frame.img = img;
+        imgScale = 1;
+        posX = frame.x - (img.width*scaleFactor)/2;
+        posY = frame.y - (img.height*scaleFactor)/2;
+        draw();
+    };
+    img.src = URL.createObjectURL(file);
 });
 
-// Camera
+// Camera Button
 document.getElementById("cameraBtn").addEventListener("click", ()=>{
-  const input = document.getElementById("imgUploadInput");
-  input.capture = "environment";
-  input.click();
+    document.getElementById("imgInput").capture = "environment";
+    document.getElementById("imgInput").click();
 });
 
-// Desktop zoom
+// Desktop Zoom
 canvas.addEventListener("wheel", e=>{
-  e.preventDefault();
-  imgScale += -Math.sign(e.deltaY)*0.05;
-  imgScale = Math.max(0.3, Math.min(5,imgScale));
-  draw();
+    e.preventDefault();
+    imgScale += -Math.sign(e.deltaY)*0.05;
+    imgScale = Math.max(0.3, Math.min(5, imgScale));
+    draw();
 });
 
-// Desktop drag
+// Desktop Drag
+let isDragging = false;
 canvas.addEventListener("mousedown", e=>{
-  isDragging = true;
-  startX = e.offsetX;
-  startY = e.offsetY;
-  canvas.style.cursor="grabbing";
+    isDragging = true;
+    startX = e.offsetX;
+    startY = e.offsetY;
+    canvas.style.cursor="grabbing";
 });
 canvas.addEventListener("mousemove", e=>{
-  if(!isDragging) return;
-  posX += e.offsetX - startX;
-  posY += e.offsetY - startY;
-  startX = e.offsetX;
-  startY = e.offsetY;
-  draw();
+    if(!isDragging) return;
+    posX += e.offsetX - startX;
+    posY += e.offsetY - startY;
+    startX = e.offsetX;
+    startY = e.offsetY;
+    draw();
 });
-window.addEventListener("mouseup", ()=>{isDragging=false; canvas.style.cursor="grab";});
+window.addEventListener("mouseup", ()=>{
+    isDragging=false;
+    canvas.style.cursor="grab";
+});
 
-// Touch pinch + drag
+// Touch Zoom + Drag
 canvas.addEventListener("touchstart", e=>{
-  if(e.touches.length===2){
-    pinchStartDist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-  } else if(e.touches.length===1){
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  }
+    if(e.touches.length===2){
+        pinchStartDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+    } else if(e.touches.length===1){
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    }
 });
 
 canvas.addEventListener("touchmove", e=>{
-  e.preventDefault();
-  if(!frame.img) return;
+    e.preventDefault();
+    if(!frame.img) return;
 
-  if(e.touches.length===2){
-    const newDist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    imgScale *= newDist/pinchStartDist;
-    imgScale = Math.max(0.3, Math.min(5,imgScale));
-    pinchStartDist = newDist;
-    draw();
-  } else if(e.touches.length===1){
-    posX += e.touches[0].clientX - startX;
-    posY += e.touches[0].clientY - startY;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    draw();
-  }
+    if(e.touches.length===2){
+        const newDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+        imgScale *= newDist/pinchStartDist;
+        imgScale = Math.max(0.3, Math.min(5,imgScale));
+        pinchStartDist = newDist;
+        draw();
+    } else if(e.touches.length===1){
+        posX += e.touches[0].clientX - startX;
+        posY += e.touches[0].clientY - startY;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        draw();
+    }
 });
 
 // Download
 document.getElementById("downloadBtn").addEventListener("click", ()=>{
-  const link=document.createElement("a");
-  link.download="poster_output.png";
-  link.href=canvas.toDataURL();
-  link.click();
+    const link = document.createElement("a");
+    link.download = "poster_output.png";
+    link.href = canvas.toDataURL();
+    link.click();
 });
 </script>
+
 </body>
 </html>
