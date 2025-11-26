@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Poster with Single Photo Frame</title>
+
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -14,43 +15,110 @@
     padding: 20px;
     background: #f2f2f2;
   }
+
+  .wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  /* DOWNLOAD BUTTON FIXED ON IMAGE */
+  #downloadBtn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 50;
+    background-color: #008cff;
+    color: white;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  #downloadBtn:active {
+    transform: scale(0.95);
+  }
+
+  /* Invisible inputs */
+  #imgInput, #cameraInput {
+    display: none;
+  }
+
+  /* Upload controls centered over circle */
+  .upload-controls {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    cursor: pointer;
+    z-index: 20;
+  }
+
+  .upload-btn {
+    background: white;
+    border: 2px solid #008cff;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+
+  .camera-icon {
+    width: 40px;
+    height: 40px;
+    fill: #008cff;
+    cursor: pointer;
+    display: block;
+    margin: auto;
+  }
+
   canvas {
     border: 1px solid #ccc;
     max-width: 100%;
     height: auto;
-    display: block;
-    touch-action: none; /* prevent scrolling while dragging/pinching */
   }
-  input, button {
-    padding: 10px 15px;
-    font-size: 16px;
-  }
+
 </style>
 </head>
 <body>
 
 <h2>Upload Your Photo</h2>
-<input type="file" id="imgInput" accept="image/*">
 
-<canvas id="finalCanvas"></canvas>
-<button id="downloadBtn">Download Poster</button>
+<div class="wrapper">
+
+    <!-- NEW top-left download button -->
+    <button id="downloadBtn">Download</button>
+
+    <canvas id="finalCanvas"></canvas>
+
+    <!-- upload controls in the circle -->
+    <div id="uploadControls" class="upload-controls">
+        <svg class="camera-icon" id="cameraIcon" viewBox="0 0 24 24">
+          <path d="M12 7a5 5 0 100 10 5 5 0 000-10zm9-1h-3.586l-1.707-1.707A1 
+1 0 0014.586 3h-5.172a1 1 0 00-.707.293L7 5H3a1 1 0 00-1 1v12a1 
+1 0 001 1h18a1 1 0 001-1V7a1 1 0 00-1-1z"/>
+        </svg>
+        <button class="upload-btn" onclick="document.getElementById('imgInput').click()">Choose File</button>
+    </div>
+</div>
+
+<input type="file" id="imgInput" accept="image/*">
+<input type="file" id="cameraInput" accept="image/*" capture="environment">
 
 <script>
 const canvas = document.getElementById("finalCanvas");
 const ctx = canvas.getContext("2d");
 
-// Poster image
 const poster = new Image();
-poster.src = "WhatsApp Image 2025-11-19 at 01.38.18_40e3d844.jpg";
+poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
-// Scaling factor for mobile
 let scaleFactor = 1;
 
-// Circle frame (center and radius)
 const frame = {
-    x: 263, // original center x
-    y: 994, // original center y
-    r: Math.sqrt((467-263)**2 + (1001-994)**2), // radius ~204
+    x: 370.2,
+    y: 1338.2,
+    r: 223.72,
     img: null
 };
 
@@ -59,66 +127,76 @@ let posX = 0;
 let posY = 0;
 let isDragging = false;
 let startX, startY;
-let lastDistance = null; // for pinch zoom
+
+poster.onload = () => {
+    const screenWidth = Math.min(window.innerWidth, poster.width);
+    scaleFactor = screenWidth / poster.width;
+
+    canvas.width = poster.width * scaleFactor;
+    canvas.height = poster.height * scaleFactor;
+
+    frame.x *= scaleFactor;
+    frame.y *= scaleFactor;
+    frame.r *= scaleFactor;
+
+    // POSITION upload controls DEAD CENTRE of circle
+    const controls = document.getElementById("uploadControls");
+    controls.style.left = frame.x + "px";
+    controls.style.top = frame.y + "px";
+
+    draw();
+};
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(poster, 0, 0, canvas.width, canvas.height);
 
-    if(frame.img){
+    if (frame.img) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
-        ctx.closePath();
+        ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI * 2);
         ctx.clip();
 
         const w = frame.img.width * imgScale * scaleFactor;
         const h = frame.img.height * imgScale * scaleFactor;
-        ctx.drawImage(frame.img, posX, posY, w, h);
 
+        ctx.drawImage(frame.img, posX, posY, w, h);
         ctx.restore();
     }
 
-    // Draw frame outline
+    // outline (stable across devices)
     ctx.beginPath();
-    ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
+    ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI * 2);
     ctx.lineWidth = 5;
     ctx.strokeStyle = "#00ff00";
     ctx.stroke();
 }
 
-// Load poster and scale for mobile
-poster.onload = () => {
-    const screenWidth = Math.min(window.innerWidth, poster.width);
-    scaleFactor = screenWidth / poster.width;
-    canvas.width = poster.width * scaleFactor;
-    canvas.height = poster.height * scaleFactor;
-
-    // Scale frame coordinates
-    frame.x *= scaleFactor;
-    frame.y *= scaleFactor;
-    frame.r *= scaleFactor;
-
-    draw();
-};
-
-// Upload user image
-document.getElementById("imgInput").addEventListener("change", e => {
-    const file = e.target.files[0];
-    if(!file) return;
+function loadImageFile(file) {
+    if (!file) return;
 
     const img = new Image();
     img.onload = () => {
         frame.img = img;
         imgScale = 1;
-        posX = frame.x - (img.width/2) * scaleFactor;
-        posY = frame.y - (img.height/2) * scaleFactor;
+
+        posX = frame.x - (img.width / 2) * scaleFactor;
+        posY = frame.y - (img.height / 2) * scaleFactor;
+
+        document.getElementById("uploadControls").style.display = "none";
+
         draw();
     };
     img.src = URL.createObjectURL(file);
+}
+
+document.getElementById("imgInput").addEventListener("change", e => loadImageFile(e.target.files[0]));
+document.getElementById("cameraInput").addEventListener("change", e => loadImageFile(e.target.files[0]));
+document.getElementById("cameraIcon").addEventListener("click", () => {
+    document.getElementById("cameraInput").click();
 });
 
-// Zoom with mouse wheel
+// Zoom
 canvas.addEventListener("wheel", e => {
     e.preventDefault();
     imgScale += Math.sign(e.deltaY) * -0.05;
@@ -126,14 +204,14 @@ canvas.addEventListener("wheel", e => {
     draw();
 });
 
-// Drag with mouse
+// Drag
 canvas.addEventListener("mousedown", e => {
     isDragging = true;
     startX = e.offsetX;
     startY = e.offsetY;
 });
 canvas.addEventListener("mousemove", e => {
-    if(!isDragging) return;
+    if (!isDragging) return;
     posX += e.offsetX - startX;
     posY += e.offsetY - startY;
     startX = e.offsetX;
@@ -142,58 +220,7 @@ canvas.addEventListener("mousemove", e => {
 });
 window.addEventListener("mouseup", () => isDragging = false);
 
-// Drag & pinch zoom for touch devices
-canvas.addEventListener("touchstart", e => {
-    e.preventDefault();
-    if(e.touches.length === 1){
-        const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        startX = touch.clientX - rect.left;
-        startY = touch.clientY - rect.top;
-        isDragging = true;
-    } else if(e.touches.length === 2){
-        lastDistance = getDistance(e.touches);
-    }
-});
-
-canvas.addEventListener("touchmove", e => {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-
-    if(e.touches.length === 1 && isDragging){
-        const touch = e.touches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        posX += x - startX;
-        posY += y - startY;
-        startX = x;
-        startY = y;
-        draw();
-    } else if(e.touches.length === 2){
-        const distance = getDistance(e.touches);
-        if(lastDistance){
-            const scaleChange = distance / lastDistance;
-            imgScale *= scaleChange;
-            imgScale = Math.max(0.2, Math.min(4, imgScale));
-            draw();
-        }
-        lastDistance = distance;
-    }
-});
-
-canvas.addEventListener("touchend", e => {
-    if(e.touches.length < 2) lastDistance = null;
-    if(e.touches.length === 0) isDragging = false;
-});
-
-// Helper for pinch zoom
-function getDistance(touches){
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx*dx + dy*dy);
-}
-
-// Download the poster
+// Download
 document.getElementById("downloadBtn").addEventListener("click", () => {
     const link = document.createElement("a");
     link.download = "poster_output.png";
