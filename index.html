@@ -27,7 +27,6 @@
     height: auto;
   }
 
-  /* Download button */
   #downloadBtn {
     position: absolute;
     top: 10px;
@@ -40,9 +39,9 @@
     border-radius: 6px;
     cursor: pointer;
     opacity: 0.85;
+    z-index: 20;
   }
 
-  /* Centered upload zone */
   .center-buttons {
     position: absolute;
     left: 50%;
@@ -53,9 +52,9 @@
     gap: 8px;
     align-items: center;
     pointer-events: none;
+    z-index: 15;
   }
 
-  /* Both buttons – small, clean, modern */
   .upload-btn, #cameraBtn {
     pointer-events: auto;
     background: white;
@@ -78,7 +77,6 @@
   input[type="file"] {
     display: none;
   }
-
 </style>
 </head>
 <body>
@@ -90,11 +88,13 @@
 
     <canvas id="finalCanvas"></canvas>
 
-    <!-- FB-style clean upload area -->
     <div class="center-buttons">
-        <label class="upload-btn" for="imgInput">📁 Upload Photo</label>
+        <label class="upload-btn" for="imgUploadInput">📁 Upload Photo</label>
         <button id="cameraBtn">📸 Camera</button>
-        <input type="file" id="imgInput" accept="image/*">
+
+        <!-- Two completely separate inputs -->
+        <input type="file" id="imgUploadInput" accept="image/*">
+        <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
     </div>
 </div>
 
@@ -105,7 +105,7 @@ const ctx = canvas.getContext("2d");
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
-// Correct new coordinates from you
+// Correct coordinates
 const frame = {
     x: 363,
     y: 1330,
@@ -158,7 +158,6 @@ function draw() {
         ctx.restore();
     }
 
-    // Thin clean outline (2px)
     ctx.beginPath();
     ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI * 2);
     ctx.lineWidth = 2;
@@ -166,8 +165,8 @@ function draw() {
     ctx.stroke();
 }
 
-// Upload
-document.getElementById("imgInput").addEventListener("change", e => {
+// Shared image load handler
+function handleImageSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -181,16 +180,20 @@ document.getElementById("imgInput").addEventListener("change", e => {
         draw();
     };
     img.src = URL.createObjectURL(file);
-});
+}
 
-// Camera button
+// Upload input
+document.getElementById("imgUploadInput")
+    .addEventListener("change", handleImageSelect);
+
+// Camera input
 document.getElementById("cameraBtn").addEventListener("click", () => {
-    const input = document.getElementById("imgInput");
-    input.capture = "environment";
-    input.click();
+    document.getElementById("imgCameraInput").click();
 });
+document.getElementById("imgCameraInput")
+    .addEventListener("change", handleImageSelect);
 
-// Desktop zoom
+// Scroll zoom
 canvas.addEventListener("wheel", e => {
     e.preventDefault();
     imgScale += -Math.sign(e.deltaY) * 0.05;
@@ -198,7 +201,7 @@ canvas.addEventListener("wheel", e => {
     draw();
 });
 
-// Desktop drag
+// Drag move
 canvas.addEventListener("mousedown", e => {
     isDragging = true;
     startX = e.offsetX;
@@ -216,7 +219,7 @@ canvas.addEventListener("mousemove", e => {
 
 window.addEventListener("mouseup", () => isDragging = false);
 
-// Touch support
+// Touch control
 let lastDistance = 0;
 
 canvas.addEventListener("touchstart", e => {
