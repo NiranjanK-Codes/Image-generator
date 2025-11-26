@@ -85,7 +85,6 @@
 
 <div class="canvas-wrapper">
     <button id="downloadBtn">Download</button>
-
     <canvas id="finalCanvas"></canvas>
 
     <div class="center-buttons">
@@ -104,11 +103,11 @@ const ctx = canvas.getContext("2d");
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
-// Move ellipse 25px down and 25px right
+// Ellipse/frame info
 const frame = {
-    x: 363 + 8, // original 363 + 25
-    y: 1330 + 10, // original 1330 + 25
-    r: Math.hypot(592 - 363, 1318 - 1330)*0.9,
+    x: 363 + 8,
+    y: 1330 + 10,
+    r: Math.hypot(592 - 363, 1318 - 1330) * 0.9,
     img: null
 };
 
@@ -157,11 +156,17 @@ function draw() {
         ctx.restore();
     }
 
+    // White border
     ctx.beginPath();
     ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI * 2);
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "#00ff00";
+    ctx.strokeStyle = "#ffffff";
     ctx.stroke();
+
+    // Position buttons at center of frame
+    const buttons = document.querySelector(".center-buttons");
+    buttons.style.left = frame.x + "px";
+    buttons.style.top = frame.y + "px";
 }
 
 function handleImageSelect(e) {
@@ -186,11 +191,18 @@ document.getElementById("cameraBtn").addEventListener("click", () => {
 });
 document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
 
-// Scroll zoom
+// Scroll zoom for desktop
 canvas.addEventListener("wheel", e => {
     e.preventDefault();
+    const prevScale = imgScale;
     imgScale += -Math.sign(e.deltaY) * 0.05;
     imgScale = Math.max(0.3, Math.min(5, imgScale));
+
+    // Adjust position to zoom at center of frame
+    const scaleChange = imgScale / prevScale;
+    posX = frame.x - (frame.x - posX) * scaleChange;
+    posY = frame.y - (frame.y - posY) * scaleChange;
+
     draw();
 });
 
@@ -226,18 +238,26 @@ canvas.addEventListener("touchstart", e => {
 canvas.addEventListener("touchmove", e => {
     e.preventDefault();
 
+    if (!frame.img) return;
+
     if (e.touches.length === 2) {
         let newDist = Math.hypot(
             e.touches[0].clientX - e.touches[1].clientX,
             e.touches[0].clientY - e.touches[1].clientY
         );
 
+        const prevScale = imgScale;
         imgScale *= newDist / lastDistance;
         imgScale = Math.max(0.3, Math.min(5, imgScale));
 
+        // Adjust position to zoom relative to frame center
+        const scaleChange = imgScale / prevScale;
+        posX = frame.x - (frame.x - posX) * scaleChange;
+        posY = frame.y - (frame.y - posY) * scaleChange;
+
         lastDistance = newDist;
         draw();
-    } else {
+    } else if (e.touches.length === 1) {
         posX += e.touches[0].clientX - startX;
         posY += e.touches[0].clientY - startY;
         startX = e.touches[0].clientX;
