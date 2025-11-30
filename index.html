@@ -21,19 +21,18 @@ body {
   display: inline-block;
 }
 
-canvas {
-  display: block;
-  max-width: 100%;
-  touch-action: none;
-  background: #eee;
-  cursor: grab;
-}
-
+/* BUTTONS CENTERED ON CIRCLE, NOT POSTER */
 .button-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  background: rgba(255,255,255,0.85);
+  padding: 12px;
+  border-radius: 12px;
   display: flex;
   gap: 6px;
-  justify-content: center;
-  margin-bottom: 10px;
 }
 
 .upload-btn, #cameraBtn, #downloadBtn {
@@ -55,6 +54,14 @@ input[type="file"] {
   display: none;
 }
 
+canvas {
+  display: block;
+  max-width: 100%;
+  touch-action: none;
+  background: #eee;
+  cursor: grab;
+}
+
 .slider-container {
   display: flex;
   align-items: center;
@@ -67,19 +74,22 @@ input[type="file"] {
 
 <h2>Upload or Capture a Picture</h2>
 
-<div class="button-row">
-  <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
-  <button id="cameraBtn">📸 Camera</button>
-  <button id="downloadBtn">Download</button>
-</div>
-
 <div class="slider-container">
   <label for="sizeSlider">Size:</label>
   <input type="range" id="sizeSlider" min="0.3" max="3" step="0.01" value="1">
 </div>
 
-<div class="canvas-wrapper">
+<div class="canvas-wrapper" id="canvasWrapper">
+
+  <!-- BUTTONS PLACED AT CIRCLE CENTER -->
+  <div class="button-row" id="buttonRow">
+    <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
+    <button id="cameraBtn">📸 Camera</button>
+    <button id="downloadBtn">Download</button>
+  </div>
+
   <canvas id="finalCanvas"></canvas>
+
   <input type="file" id="imgUploadInput" accept="image/*">
   <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
 </div>
@@ -88,6 +98,7 @@ input[type="file"] {
 const canvas = document.getElementById("finalCanvas");
 const ctx = canvas.getContext("2d");
 const sizeSlider = document.getElementById("sizeSlider");
+const buttonRow = document.getElementById("buttonRow");
 
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
@@ -118,6 +129,10 @@ poster.onload = () => {
   frame.y *= scaleFactor;
   frame.r *= scaleFactor;
 
+  // Move buttons to circular frame center
+  buttonRow.style.left = frame.x + "px";
+  buttonRow.style.top = frame.y + "px";
+
   draw();
 };
 
@@ -142,7 +157,7 @@ function draw() {
     ctx.restore();
   }
 
-  // Frame border
+  // Circle border
   ctx.beginPath();
   ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
   ctx.lineWidth = 2;
@@ -154,6 +169,9 @@ function draw() {
 function handleImageSelect(e){
   const file = e.target.files[0];
   if(!file) return;
+
+  // Hide buttons when an image is added
+  buttonRow.style.display = "none";
 
   const img = new Image();
   img.onload = () => {
@@ -167,7 +185,7 @@ function handleImageSelect(e){
   img.src = URL.createObjectURL(file);
 }
 
-// Dragging
+// Touch movement
 canvas.addEventListener("touchstart", e=>{
   if(!frame.img) return;
   if(e.touches.length === 1){
@@ -191,17 +209,16 @@ canvas.addEventListener("touchend", e=>{
   isDragging = false;
 });
 
-// Slider control
+// Size slider
 sizeSlider.addEventListener("input", e=>{
   imgScale = parseFloat(sizeSlider.value);
   draw();
 });
 
-// Event listeners
+// Upload/camera listeners
 document.getElementById("imgUploadInput").addEventListener("change", handleImageSelect);
 document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
 
-// Camera button triggers file input with camera
 document.getElementById("cameraBtn").addEventListener("click", ()=>{
   document.getElementById("imgCameraInput").click();
 });
