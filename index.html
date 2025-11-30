@@ -21,21 +21,40 @@ body {
   display: inline-block;
 }
 
-/* BUTTONS CENTERED ON CIRCLE, NOT POSTER */
-.button-row {
+/* Upload + Camera centered on circle */
+.upload-row {
   position: absolute;
   top: 0;
   left: 0;
   transform: translate(-50%, -50%);
   z-index: 10;
   background: rgba(255,255,255,0.85);
-  padding: 12px;
+  padding: 10px;
   border-radius: 12px;
   display: flex;
   gap: 6px;
 }
 
-.upload-btn, #cameraBtn, #downloadBtn {
+/* Download button at bottom of poster */
+#downloadBtn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 20px;
+  background: white;
+  border: 1px solid #bbb;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+#downloadBtn:hover {
+  background: #f0f0f0;
+}
+
+.upload-btn, #cameraBtn {
   background: white;
   border: 1px solid #bbb;
   padding: 6px 8px;
@@ -44,9 +63,7 @@ body {
   cursor: pointer;
 }
 
-.upload-btn:hover,
-#cameraBtn:hover,
-#downloadBtn:hover {
+.upload-btn:hover, #cameraBtn:hover {
   background: #f0f0f0;
 }
 
@@ -81,12 +98,14 @@ canvas {
 
 <div class="canvas-wrapper" id="canvasWrapper">
 
-  <!-- BUTTONS PLACED AT CIRCLE CENTER -->
-  <div class="button-row" id="buttonRow">
+  <!-- Upload + Camera centered on frame -->
+  <div class="upload-row" id="uploadRow">
     <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
     <button id="cameraBtn">📸 Camera</button>
-    <button id="downloadBtn">Download</button>
   </div>
+
+  <!-- Download button moved to bottom of poster -->
+  <button id="downloadBtn">Download</button>
 
   <canvas id="finalCanvas"></canvas>
 
@@ -98,7 +117,8 @@ canvas {
 const canvas = document.getElementById("finalCanvas");
 const ctx = canvas.getContext("2d");
 const sizeSlider = document.getElementById("sizeSlider");
-const buttonRow = document.getElementById("buttonRow");
+const uploadRow = document.getElementById("uploadRow");
+const downloadBtn = document.getElementById("downloadBtn");
 
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
@@ -116,7 +136,6 @@ let posX = 0, posY = 0;
 let isDragging = false;
 let startX = 0, startY = 0;
 
-// Load poster
 poster.onload = () => {
   const w = poster.width;
   const h = poster.height;
@@ -129,9 +148,12 @@ poster.onload = () => {
   frame.y *= scaleFactor;
   frame.r *= scaleFactor;
 
-  // Move buttons to circular frame center
-  buttonRow.style.left = frame.x + "px";
-  buttonRow.style.top = frame.y + "px";
+  // Center upload/camera on frame
+  uploadRow.style.left = frame.x + "px";
+  uploadRow.style.top = frame.y + "px";
+
+  // Place download button at bottom of poster
+  downloadBtn.style.bottom = "20px";
 
   draw();
 };
@@ -157,7 +179,6 @@ function draw() {
     ctx.restore();
   }
 
-  // Circle border
   ctx.beginPath();
   ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
   ctx.lineWidth = 2;
@@ -165,13 +186,11 @@ function draw() {
   ctx.stroke();
 }
 
-// Handle image selection
 function handleImageSelect(e){
   const file = e.target.files[0];
   if(!file) return;
 
-  // Hide buttons when an image is added
-  buttonRow.style.display = "none";
+  uploadRow.style.display = "none";
 
   const img = new Image();
   img.onload = () => {
@@ -185,7 +204,6 @@ function handleImageSelect(e){
   img.src = URL.createObjectURL(file);
 }
 
-// Touch movement
 canvas.addEventListener("touchstart", e=>{
   if(!frame.img) return;
   if(e.touches.length === 1){
@@ -205,17 +223,15 @@ canvas.addEventListener("touchmove", e=>{
   draw();
 });
 
-canvas.addEventListener("touchend", e=>{
+canvas.addEventListener("touchend", ()=>{
   isDragging = false;
 });
 
-// Size slider
-sizeSlider.addEventListener("input", e=>{
+sizeSlider.addEventListener("input", ()=>{
   imgScale = parseFloat(sizeSlider.value);
   draw();
 });
 
-// Upload/camera listeners
 document.getElementById("imgUploadInput").addEventListener("change", handleImageSelect);
 document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
 
@@ -223,7 +239,7 @@ document.getElementById("cameraBtn").addEventListener("click", ()=>{
   document.getElementById("imgCameraInput").click();
 });
 
-document.getElementById("downloadBtn").addEventListener("click", ()=>{
+downloadBtn.addEventListener("click", ()=>{
   const link = document.createElement("a");
   link.download = "poster_output.png";
   link.href = canvas.toDataURL();
