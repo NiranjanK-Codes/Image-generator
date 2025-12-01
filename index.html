@@ -29,7 +29,6 @@ body {
   border-radius: 12px;
   display: flex;
   gap: 6px;
-  transform: translate(-50%, -50%);
 }
 
 .upload-btn, #cameraBtn {
@@ -46,9 +45,11 @@ body {
 
 input[type="file"] { display: none; }
 
+/* HQ rendering, scaled only for visual preview */
 canvas {
+  width: 95%;
+  height: auto;
   display: block;
-  max-width: 100%;
   touch-action: none;
   background: #eee;
   cursor: grab;
@@ -106,12 +107,15 @@ const canvas = document.getElementById("finalCanvas");
 const ctx = canvas.getContext("2d");
 const sizeSlider = document.getElementById("sizeSlider");
 const uploadRow = document.getElementById("uploadRow");
+const canvasWrapper = document.getElementById("canvasWrapper");
 
 let downloadCount = 1;
 
+/* POSTER IMAGE */
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
+/* FRAME ON POSTER (HQ COORDINATES) */
 const frame = {
   x: 371,
   y: 1340,
@@ -119,37 +123,44 @@ const frame = {
   img: null
 };
 
-let scaleFactor = 1;
 let imgScale = 1;
 let posX = 0, posY = 0;
 let isDragging = false;
 let startX = 0, startY = 0;
 
-// For pinch zoom
-let initialDistance = 0;
-let initialScale = 1;
+/* Convert poster HQ coords → visible canvas coords */
+function mapToDisplayed(x, y) {
+  const displayWidth = canvas.clientWidth;
+  const factor = displayWidth / canvas.width;
+  return { dx: x * factor, dy: y * factor };
+}
+
+/* Center the upload buttons on the circle */
+function updateUploadRowPosition() {
+  const p = mapToDisplayed(frame.x, frame.y);
+
+  const buttons = uploadRow.getBoundingClientRect();
+  const wrapperRect = canvasWrapper.getBoundingClientRect();
+
+  uploadRow.style.left = p.dx - buttons.width / 2 + "px";
+  uploadRow.style.top  = p.dy - buttons.height / 2 + "px";
+}
 
 poster.onload = () => {
   const w = poster.width;
   const h = poster.height;
 
-  scaleFactor = Math.min(window.innerWidth * 0.95 / w, 1);
-  canvas.width = w * scaleFactor;
-  canvas.height = h * scaleFactor;
-
-  frame.x *= scaleFactor;
-  frame.y *= scaleFactor;
-  frame.r *= scaleFactor;
-
-  uploadRow.style.left = frame.x + "px";
-  uploadRow.style.top = frame.y + "px";
+  /* Full-resolution canvas */
+  canvas.width = w;
+  canvas.height = h;
 
   draw();
+  updateUploadRowPosition();
 };
 
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(poster,0,0,canvas.width,canvas.height);
+  ctx.drawImage(poster, 0, 0);
 
   if(frame.img){
     ctx.save();
@@ -161,14 +172,13 @@ function draw() {
       frame.img,
       posX,
       posY,
-      frame.img.width * imgScale * scaleFactor,
-      frame.img.height * imgScale * scaleFactor
+      frame.img.width * imgScale,
+      frame.img.height * imgScale
     );
 
     ctx.restore();
   }
 
-  // draw frame outline
   ctx.beginPath();
   ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
   ctx.lineWidth = 2;
@@ -185,106 +195,85 @@ function handleImageSelect(e){
   const img = new Image();
   img.onload = () => {
     frame.img = img;
+
     imgScale = 1;
-    posX = frame.x - (img.width*scaleFactor)/2;
-    posY = frame.y - (img.height*scaleFactor)/2;
+    posX = frame.x - img.width/2;
+    posY = frame.y - img.height/2;
+
     sizeSlider.value = 1;
     draw();
   };
-  img.src = URL.createObjectURL(file);
 
+  img.src = URL.createObjectURL(file);
   downloadCount = 1;
 }
 
-// Dragging
+/* Touch drag */
 canvas.addEventListener("touchstart", e=>{
   if(!frame.img) return;
   if(e.touches.length === 1){
     isDragging = true;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-  } else if(e.touches.length === 2){
-    // pinch start
-    initialDistance = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    initialScale = imgScale;
   }
 });
 
 canvas.addEventListener("touchmove", e=>{
-  if(!frame.img) return;
-
-  if(e.touches.length === 1 && isDragging){
-    e.preventDefault();
-    posX += e.touches[0].clientX - startX;
-    posY += e.touches[0].clientY - startY;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    draw();
-  } else if(e.touches.length === 2){
-    e.preventDefault();
-    const newDistance = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    imgScale = initialScale * (newDistance / initialDistance);
-    draw();
-  }
+  if(!frame.img || !isDragging) return;
+  e.preventDefault();
+  posX += e.touches[0].clientX - startX;
+  posY += e.touches[0].clientY - startY;
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
+  draw();
 });
 
-canvas.addEventListener("touchend", ()=>{
-  isDragging = false;
-});
+canvas.addEventListener("touchend", ()=> isDragging = false);
 
-// Slider zoom
+/* Scale */
 sizeSlider.addEventListener("input", ()=>{
   imgScale = parseFloat(sizeSlider.value);
   draw();
 });
 
-document.getElementById("imgUploadInput").addEventListener("change", handleImageSelect);
-document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
+/* Upload handlers */
+imgUploadInput.addEventListener("change", handleImageSelect);
+imgCameraInput.addEventListener("change", handleImageSelect);
+cameraBtn.addEventListener("click", ()=> imgCameraInput.click());
 
-document.getElementById("cameraBtn").addEventListener("click", ()=>{
-  document.getElementById("imgCameraInput").click();
-});
-
-// Download
-document.getElementById("downloadBtn").addEventListener("click", () => {
+/* HQ Download */
+downloadBtn.addEventListener("click", () => {
   const fileName =
-    "Rathnavalli_Sathyan_" + downloadCount + ".png";
+    "Rathnavalli_Sathyan_" + downloadCount + "_" + Date.now() + ".png";
 
   downloadCount++;
 
   canvas.toBlob((blob) => {
-    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-
+    const url = URL.createObjectURL(blob);
     a.href = url;
     a.download = fileName;
-
-    a.dispatchEvent(new MouseEvent("click", { 
-      bubbles: true, 
-      cancelable: true, 
-      view: window 
-    }));
-
-    setTimeout(() => URL.revokeObjectURL(url), 500);
-  }, "image/png");
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),500);
+  });
 });
 
-// Reset
-document.getElementById("resetBtn").addEventListener("click", () => {
+/* Reset */
+resetBtn.addEventListener("click", () => {
   frame.img = null;
   uploadRow.style.display = "flex";
-  sizeSlider.value = 1;
   imgScale = 1;
+  sizeSlider.value = 1;
   downloadCount = 1;
+
   draw();
+  updateUploadRowPosition();
 });
+
+/* Reposition buttons on resize */
+window.addEventListener("resize", updateUploadRowPosition);
 </script>
 
 </body>
 </html>
+
