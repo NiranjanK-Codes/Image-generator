@@ -57,7 +57,7 @@ canvas {
   cursor: grab;
 }
 
-/* Download button below poster */
+/* Buttons */
 #downloadBtn, #resetBtn {
   margin-top: 15px;
   background: white;
@@ -89,7 +89,6 @@ canvas {
 
 <div class="canvas-wrapper" id="canvasWrapper">
 
-  <!-- Upload + Camera centered on frame -->
   <div class="upload-row" id="uploadRow">
     <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
     <button id="cameraBtn">📸 Camera</button>
@@ -101,7 +100,6 @@ canvas {
   <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
 </div>
 
-<!-- Download + RESET BUTTON (NEW) -->
 <div style="display: flex; gap: 10px;">
   <button id="downloadBtn">Download</button>
   <button id="resetBtn">Reset</button>
@@ -113,7 +111,7 @@ const ctx = canvas.getContext("2d");
 const sizeSlider = document.getElementById("sizeSlider");
 const uploadRow = document.getElementById("uploadRow");
 
-let downloadCount = 1; // <-- NEW
+let downloadCount = 1;  
 
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
@@ -194,7 +192,7 @@ function handleImageSelect(e){
   };
   img.src = URL.createObjectURL(file);
 
-  downloadCount = 1; // reset counter when new image is uploaded
+  downloadCount = 1;
 }
 
 canvas.addEventListener("touchstart", e=>{
@@ -232,7 +230,7 @@ document.getElementById("cameraBtn").addEventListener("click", ()=>{
   document.getElementById("imgCameraInput").click();
 });
 
-/* INCREMENTING FILENAME DOWNLOAD FUNCTION */
+/* FINAL — YOUR EXACT DOWNLOAD FUNCTION INTEGRATED */
 document.getElementById("downloadBtn").addEventListener("click", () => {
   const fileName = "Rathnavalli_Sathyan_" + downloadCount + ".png";
   downloadCount++;
@@ -254,7 +252,7 @@ document.getElementById("downloadBtn").addEventListener("click", () => {
   }, "image/png");
 });
 
-/* RESET BUTTON FUNCTION (ONLY NEW JS) */
+/* Reset button */
 document.getElementById("resetBtn").addEventListener("click", () => {
   frame.img = null;
   uploadRow.style.display = "flex";
