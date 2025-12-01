@@ -58,7 +58,7 @@ canvas {
 }
 
 /* Download button below poster */
-#downloadBtn {
+#downloadBtn, #resetBtn {
   margin-top: 15px;
   background: white;
   border: 1px solid #bbb;
@@ -67,7 +67,7 @@ canvas {
   border-radius: 8px;
   cursor: pointer;
 }
-#downloadBtn:hover {
+#downloadBtn:hover, #resetBtn:hover {
   background: #f0f0f0;
 }
 
@@ -101,8 +101,11 @@ canvas {
   <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
 </div>
 
-<!-- Download button now OUTSIDE and BELOW the poster -->
-<button id="downloadBtn">Download</button>
+<!-- Download + RESET BUTTON (NEW) -->
+<div style="display: flex; gap: 10px;">
+  <button id="downloadBtn">Download</button>
+  <button id="resetBtn">Reset</button>
+</div>
 
 <script>
 const canvas = document.getElementById("finalCanvas");
@@ -249,6 +252,16 @@ document.getElementById("downloadBtn").addEventListener("click", () => {
 
     setTimeout(() => URL.revokeObjectURL(url), 500);
   }, "image/png");
+});
+
+/* RESET BUTTON FUNCTION (ONLY NEW JS) */
+document.getElementById("resetBtn").addEventListener("click", () => {
+  frame.img = null;
+  uploadRow.style.display = "flex";
+  sizeSlider.value = 1;
+  imgScale = 1;
+  downloadCount = 1;
+  draw();
 });
 </script>
 
