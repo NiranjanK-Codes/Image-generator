@@ -8,7 +8,311 @@
 <style>
 body {
   font-family: Arial, sans-serif;
+  display: flex;<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Poster Editor</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: #f2f2f2;
+}
+
+.canvas-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.upload-row {
+  position: absolute;
+  z-index: 10;
+  background: rgba(255,255,255,0.85);
+  padding: 10px;
+  border-radius: 12px;
+  display: flex;
+  gap: 6px;
+  transform: translate(-50%, -50%);
+}
+
+.upload-btn, #cameraBtn {
+  background: white;
+  border: 1px solid #bbb;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.upload-btn:hover, #cameraBtn:hover {
+  background: #f0f0f0;
+}
+
+input[type="file"] { display: none; }
+
+canvas {
+  display: block;
+  max-width: 100%;
+  touch-action: none;
+  background: #eee;
+  cursor: grab;
+}
+
+#downloadBtn, #resetBtn {
+  margin-top: 15px;
+  background: white;
+  border: 1px solid #bbb;
+  padding: 10px 16px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+#downloadBtn:hover, #resetBtn:hover {
+  background: #f0f0f0;
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+</style>
+</head>
+<body>
+
+<h2>Upload or Capture a Picture</h2>
+
+<div class="slider-container">
+  <label for="sizeSlider">Size:</label>
+  <input type="range" id="sizeSlider" min="0.3" max="3" step="0.01" value="1">
+</div>
+
+<div class="canvas-wrapper" id="canvasWrapper">
+
+  <div class="upload-row" id="uploadRow">
+    <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
+    <button id="cameraBtn">📸 Camera</button>
+  </div>
+
+  <canvas id="finalCanvas"></canvas>
+
+  <input type="file" id="imgUploadInput" accept="image/*">
+  <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
+</div>
+
+<div style="display: flex; gap: 10px;">
+  <button id="downloadBtn">Download</button>
+  <button id="resetBtn">Reset</button>
+</div>
+
+<script>
+const canvas = document.getElementById("finalCanvas");
+const ctx = canvas.getContext("2d");
+const sizeSlider = document.getElementById("sizeSlider");
+const uploadRow = document.getElementById("uploadRow");
+
+let downloadCount = 1;
+
+const poster = new Image();
+poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
+
+const frame = {
+  x: 371,
+  y: 1340,
+  r: Math.hypot(592 - 363, 1318 - 1330) * 0.9,
+  img: null
+};
+
+let scaleFactor = 1;
+let imgScale = 1;
+let posX = 0, posY = 0;
+let isDragging = false;
+let startX = 0, startY = 0;
+
+// For pinch zoom
+let initialDistance = 0;
+let initialScale = 1;
+let pinchCenter = {x:0, y:0};
+
+poster.onload = () => {
+  const w = poster.width;
+  const h = poster.height;
+
+  scaleFactor = Math.min(window.innerWidth * 0.95 / w, 1);
+  canvas.width = w * scaleFactor;
+  canvas.height = h * scaleFactor;
+
+  frame.x *= scaleFactor;
+  frame.y *= scaleFactor;
+  frame.r *= scaleFactor;
+
+  uploadRow.style.left = frame.x + "px";
+  uploadRow.style.top = frame.y + "px";
+
+  draw();
+};
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(poster,0,0,canvas.width,canvas.height);
+
+  if(frame.img){
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
+    ctx.clip();
+
+    ctx.drawImage(
+      frame.img,
+      posX,
+      posY,
+      frame.img.width * imgScale * scaleFactor,
+      frame.img.height * imgScale * scaleFactor
+    );
+
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#fff";
+  ctx.stroke();
+}
+
+function handleImageSelect(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  uploadRow.style.display = "none";
+
+  const img = new Image();
+  img.onload = () => {
+    frame.img = img;
+    imgScale = 1;
+    posX = frame.x - (img.width*scaleFactor)/2;
+    posY = frame.y - (img.height*scaleFactor)/2;
+    sizeSlider.value = 1;
+    draw();
+  };
+  img.src = URL.createObjectURL(file);
+
+  downloadCount = 1;
+}
+
+// Drag & Pinch
+canvas.addEventListener("touchstart", e=>{
+  if(!frame.img) return;
+  if(e.touches.length === 1){
+    isDragging = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  } else if(e.touches.length === 2){
+    initialDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    initialScale = imgScale;
+    pinchCenter = {
+      x: (e.touches[0].clientX + e.touches[1].clientX)/2,
+      y: (e.touches[0].clientY + e.touches[1].clientY)/2
+    };
+  }
+});
+
+canvas.addEventListener("touchmove", e=>{
+  if(!frame.img) return;
+
+  if(e.touches.length === 1 && isDragging){
+    e.preventDefault();
+    posX += e.touches[0].clientX - startX;
+    posY += e.touches[0].clientY - startY;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    draw();
+  } else if(e.touches.length === 2){
+    e.preventDefault();
+    const newDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const scaleChange = newDistance / initialDistance;
+    const newScale = initialScale * scaleChange;
+
+    // Adjust position to keep pinch center fixed
+    const frameCX = frame.x;
+    const frameCY = frame.y;
+    const imgOffsetX = pinchCenter.x - posX;
+    const imgOffsetY = pinchCenter.y - posY;
+
+    posX = pinchCenter.x - imgOffsetX * (newScale / imgScale);
+    posY = pinchCenter.y - imgOffsetY * (newScale / imgScale);
+    imgScale = newScale;
+    draw();
+  }
+});
+
+canvas.addEventListener("touchend", ()=>{
+  isDragging = false;
+});
+
+// Slider zoom
+sizeSlider.addEventListener("input", ()=>{
+  imgScale = parseFloat(sizeSlider.value);
+  draw();
+});
+
+document.getElementById("imgUploadInput").addEventListener("change", handleImageSelect);
+document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
+
+document.getElementById("cameraBtn").addEventListener("click", ()=>{
+  document.getElementById("imgCameraInput").click();
+});
+
+// Download
+document.getElementById("downloadBtn").addEventListener("click", () => {
+  const fileName =
+    "Rathnavalli_Sathyan_" + downloadCount + ".png";
+
+  downloadCount++;
+
+  canvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = fileName;
+
+    a.dispatchEvent(new MouseEvent("click", { 
+      bubbles: true, 
+      cancelable: true, 
+      view: window 
+    }));
+
+    setTimeout(() => URL.revokeObjectURL(url), 500);
+  }, "image/png");
+});
+
+// Reset
+document.getElementById("resetBtn").addEventListener("click", () => {
+  frame.img = null;
+  uploadRow.style.display = "flex";
+  sizeSlider.value = 1;
+  imgScale = 1;
+  downloadCount = 1;
+  draw();
+});
+</script>
+
+</body>
+</html>
+
   flex-direction: column;
   align-items: center;
   gap: 12px;
@@ -276,3 +580,4 @@ window.addEventListener("resize", updateUploadRowPosition);
 
 </body>
 </html>
+
