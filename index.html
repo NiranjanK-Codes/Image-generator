@@ -89,7 +89,7 @@ canvas {
 
 <div class="canvas-wrapper" id="canvasWrapper">
 
-  <!-- Upload + Camera controls -->
+  <!-- Upload + Camera centered on frame -->
   <div class="upload-row" id="uploadRow">
     <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
     <button id="cameraBtn">📸 Camera</button>
@@ -101,7 +101,7 @@ canvas {
   <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
 </div>
 
-<!-- Download button -->
+<!-- Download button now OUTSIDE and BELOW the poster -->
 <button id="downloadBtn">Download</button>
 
 <script>
@@ -138,6 +138,7 @@ poster.onload = () => {
   frame.y *= scaleFactor;
   frame.r *= scaleFactor;
 
+  // Center upload controls on circular frame
   uploadRow.style.left = frame.x + "px";
   uploadRow.style.top = frame.y + "px";
 
@@ -225,12 +226,22 @@ document.getElementById("cameraBtn").addEventListener("click", ()=>{
   document.getElementById("imgCameraInput").click();
 });
 
+/* FIXED DOWNLOAD FUNCTION — NO MORE "Download again" */
 document.getElementById("downloadBtn").addEventListener("click", ()=>{
-  const link = document.createElement("a");
-  link.download = "Rathnavalli_Sathyan_Poster.png";
-  link.href = canvas.toDataURL("image/png");
+  canvas.toBlob((blob)=>{
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "Rathnavalli_Sathyan_Poster.png";
 
-  link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+    link.dispatchEvent(new MouseEvent("click", { 
+      bubbles: true, 
+      cancelable: true, 
+      view: window 
+    }));
+
+    setTimeout(()=> URL.revokeObjectURL(url), 500);
+  }, "image/png");
 });
 </script>
 
