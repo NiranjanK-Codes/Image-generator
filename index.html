@@ -3,252 +3,174 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mobile Poster Editor</title>
-
+<title>Poster Image Upload</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px;
-  background: #f2f2f2;
-}
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+    }
 
-.canvas-wrapper {
-  position: relative;
-  display: inline-block;
-}
+    .upload-box {
+        width: 300px;
+        height: 200px;
+        border: 2px dashed #777;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        background-color: #fff;
+        margin-bottom: 20px;
+    }
 
-/* Upload + Camera centered on circle */
-.upload-row {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  background: rgba(255,255,255,0.85);
-  padding: 10px;
-  border-radius: 12px;
-  display: flex;
-  gap: 6px;
-}
+    #posterContainer {
+        position: relative;
+        display: inline-block;
+    }
 
-.upload-btn, #cameraBtn {
-  background: white;
-  border: 1px solid #bbb;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-}
-.upload-btn:hover, #cameraBtn:hover {
-  background: #f0f0f0;
-}
+    #poster {
+        width: 350px;
+    }
 
-input[type="file"] { display: none; }
+    #canvas {
+        display: none;
+    }
 
-canvas {
-  display: block;
-  max-width: 100%;
-  touch-action: none;
-  background: #eee;
-  cursor: grab;
-}
+    .btn-container {
+        margin-top: 10px;
+        display: none;
+        gap: 10px;
+        justify-content: center;
+        width: 100%;
+        display: flex;
+    }
 
-/* Download button below poster */
-#downloadBtn {
-  margin-top: 15px;
-  background: white;
-  border: 1px solid #bbb;
-  padding: 10px 16px;
-  font-size: 16px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-#downloadBtn:hover {
-  background: #f0f0f0;
-}
+    button {
+        padding: 10px 20px;
+        background-color: #333;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+    }
 
-.slider-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+    button:hover {
+        background-color: #555;
+    }
 </style>
 </head>
 <body>
 
-<h2>Upload or Capture a Picture</h2>
-
-<div class="slider-container">
-  <label for="sizeSlider">Size:</label>
-  <input type="range" id="sizeSlider" min="0.3" max="3" step="0.01" value="1">
+<div class="upload-box" id="uploadBox">
+    Click to Upload Image
 </div>
 
-<div class="canvas-wrapper" id="canvasWrapper">
-
-  <!-- Upload + Camera centered on frame -->
-  <div class="upload-row" id="uploadRow">
-    <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
-    <button id="cameraBtn">📸 Camera</button>
-  </div>
-
-  <canvas id="finalCanvas"></canvas>
-
-  <input type="file" id="imgUploadInput" accept="image/*">
-  <input type="file" id="imgCameraInput" accept="image/*" capture="environment">
+<div id="posterContainer">
+    <img id="poster" src="poster.png">
+    <canvas id="canvas" width="350" height="450"></canvas>
 </div>
 
-<!-- Download button now OUTSIDE and BELOW the poster -->
-<button id="downloadBtn">Download</button>
+<div class="btn-container" id="buttonContainer">
+    <button id="downloadBtn">Download</button>
+    <button id="resetBtn">Reset</button>
+</div>
+
+<input type="file" id="imageUpload" accept="image/*" style="display:none;">
 
 <script>
-const canvas = document.getElementById("finalCanvas");
+let downloadCount = 1;
+
+const uploadBox = document.getElementById("uploadBox");
+const imageUpload = document.getElementById("imageUpload");
+const poster = document.getElementById("poster");
+const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const sizeSlider = document.getElementById("sizeSlider");
-const uploadRow = document.getElementById("uploadRow");
+const buttonContainer = document.getElementById("buttonContainer");
+const resetBtn = document.getElementById("resetBtn");
 
-let downloadCount = 1; // <-- NEW
+uploadBox.addEventListener("click", () => imageUpload.click());
 
-const poster = new Image();
-poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
+imageUpload.addEventListener("change", function () {
+    const file = this.files[0];
+    if (!file) return;
 
-const frame = {
-  x: 371,
-  y: 1340,
-  r: Math.hypot(592 - 363, 1318 - 1330) * 0.9,
-  img: null
-};
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
 
-let scaleFactor = 1;
-let imgScale = 1;
-let posX = 0, posY = 0;
-let isDragging = false;
-let startX = 0, startY = 0;
+    img.onload = function () {
+        canvas.style.display = "block";
+        poster.style.display = "none";
+        uploadBox.style.display = "none";
+        buttonContainer.style.display = "flex";
 
-poster.onload = () => {
-  const w = poster.width;
-  const h = poster.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  scaleFactor = Math.min(window.innerWidth * 0.95 / w, 1);
-  canvas.width = w * scaleFactor;
-  canvas.height = h * scaleFactor;
+        const posterImg = new Image();
+        posterImg.src = "poster.png";
 
-  frame.x *= scaleFactor;
-  frame.y *= scaleFactor;
-  frame.r *= scaleFactor;
+        posterImg.onload = function () {
+            ctx.drawImage(posterImg, 0, 0, canvas.width, canvas.height);
 
-  uploadRow.style.left = frame.x + "px";
-  uploadRow.style.top = frame.y + "px";
+            const maxWidth = 260;
+            const maxHeight = 260;
+            let width = img.width;
+            let height = img.height;
 
-  draw();
-};
+            if (width > height) {
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width *= maxHeight / height;
+                    height = maxHeight;
+                }
+            }
 
-function draw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(poster,0,0,canvas.width,canvas.height);
+            const x = (canvas.width - width) / 2;
+            const y = 140;
 
-  if(frame.img){
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
-    ctx.clip();
-
-    ctx.drawImage(
-      frame.img,
-      posX,
-      posY,
-      frame.img.width * imgScale * scaleFactor,
-      frame.img.height * imgScale * scaleFactor
-    );
-
-    ctx.restore();
-  }
-
-  ctx.beginPath();
-  ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "#fff";
-  ctx.stroke();
-}
-
-function handleImageSelect(e){
-  const file = e.target.files[0];
-  if(!file) return;
-
-  uploadRow.style.display = "none";
-
-  const img = new Image();
-  img.onload = () => {
-    frame.img = img;
-    imgScale = 1;
-    posX = frame.x - (img.width*scaleFactor)/2;
-    posY = frame.y - (img.height*scaleFactor)/2;
-    sizeSlider.value = 1;
-    draw();
-  };
-  img.src = URL.createObjectURL(file);
-
-  downloadCount = 1; // reset counter when new image is uploaded
-}
-
-canvas.addEventListener("touchstart", e=>{
-  if(!frame.img) return;
-  if(e.touches.length === 1){
-    isDragging = true;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  }
+            ctx.drawImage(img, x, y, width, height);
+        };
+    };
 });
 
-canvas.addEventListener("touchmove", e=>{
-  if(!frame.img || !isDragging) return;
-  e.preventDefault();
-  posX += e.touches[0].clientX - startX;
-  posY += e.touches[0].clientY - startY;
-  startX = e.touches[0].clientX;
-  startY = e.touches[0].clientY;
-  draw();
-});
-
-canvas.addEventListener("touchend", ()=>{
-  isDragging = false;
-});
-
-sizeSlider.addEventListener("input", ()=>{
-  imgScale = parseFloat(sizeSlider.value);
-  draw();
-});
-
-document.getElementById("imgUploadInput").addEventListener("change", handleImageSelect);
-document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
-
-document.getElementById("cameraBtn").addEventListener("click", ()=>{
-  document.getElementById("imgCameraInput").click();
-});
-
-/* INCREMENTING FILENAME DOWNLOAD FUNCTION */
 document.getElementById("downloadBtn").addEventListener("click", () => {
-  const fileName = "Rathnavalli_Sathyan_" + downloadCount + ".png";
-  downloadCount++;
+    const fileName = "Rathnavalli_Sathyan_" + downloadCount + ".png";
+    downloadCount++;
 
-  canvas.toBlob((blob) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
 
-    a.href = url;
-    a.download = fileName;
+        a.href = url;
+        a.download = fileName;
 
-    a.dispatchEvent(new MouseEvent("click", { 
-      bubbles: true, 
-      cancelable: true, 
-      view: window 
-    }));
+        a.dispatchEvent(new MouseEvent("click", { 
+            bubbles: true, 
+            cancelable: true, 
+            view: window 
+        }));
 
-    setTimeout(() => URL.revokeObjectURL(url), 500);
-  }, "image/png");
+        setTimeout(() => URL.revokeObjectURL(url), 500);
+    }, "image/png");
+});
+
+resetBtn.addEventListener("click", () => {
+    canvas.style.display = "none";
+    poster.style.display = "block";
+    uploadBox.style.display = "flex";
+    buttonContainer.style.display = "none";
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    downloadCount = 1;
+    imageUpload.value = "";
 });
 </script>
 
