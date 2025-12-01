@@ -21,7 +21,6 @@ body {
   display: inline-block;
 }
 
-/* Upload + Camera centered on circle */
 .upload-row {
   position: absolute;
   top: 0;
@@ -57,7 +56,6 @@ canvas {
   cursor: grab;
 }
 
-/* Buttons */
 #downloadBtn, #resetBtn {
   margin-top: 15px;
   background: white;
@@ -111,7 +109,7 @@ const ctx = canvas.getContext("2d");
 const sizeSlider = document.getElementById("sizeSlider");
 const uploadRow = document.getElementById("uploadRow");
 
-let downloadCount = 1;  
+let downloadCount = 1;
 
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
@@ -230,9 +228,11 @@ document.getElementById("cameraBtn").addEventListener("click", ()=>{
   document.getElementById("imgCameraInput").click();
 });
 
-/* FINAL — YOUR EXACT DOWNLOAD FUNCTION INTEGRATED */
+/* UPDATED DOWNLOAD — NOW ZERO POPUP */
 document.getElementById("downloadBtn").addEventListener("click", () => {
-  const fileName = "Rathnavalli_Sathyan_" + downloadCount + ".png";
+  const fileName =
+    "Rathnavalli_Sathyan_" + downloadCount + "_" + Date.now() + ".png";
+
   downloadCount++;
 
   canvas.toBlob((blob) => {
@@ -252,7 +252,6 @@ document.getElementById("downloadBtn").addEventListener("click", () => {
   }, "image/png");
 });
 
-/* Reset button */
 document.getElementById("resetBtn").addEventListener("click", () => {
   frame.img = null;
   uploadRow.style.display = "flex";
