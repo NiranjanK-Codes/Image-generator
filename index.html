@@ -110,6 +110,8 @@ const ctx = canvas.getContext("2d");
 const sizeSlider = document.getElementById("sizeSlider");
 const uploadRow = document.getElementById("uploadRow");
 
+let downloadCount = 1; // <-- NEW
+
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
@@ -188,6 +190,8 @@ function handleImageSelect(e){
     draw();
   };
   img.src = URL.createObjectURL(file);
+
+  downloadCount = 1; // reset counter when new image is uploaded
 }
 
 canvas.addEventListener("touchstart", e=>{
@@ -225,16 +229,17 @@ document.getElementById("cameraBtn").addEventListener("click", ()=>{
   document.getElementById("imgCameraInput").click();
 });
 
-/* UPDATED DOWNLOAD FUNCTION — unique filename every time */
+/* INCREMENTING FILENAME DOWNLOAD FUNCTION */
 document.getElementById("downloadBtn").addEventListener("click", () => {
-  const uniqueName = "Rathnavalli_Sathyan_Poster_" + Date.now() + ".png";
+  const fileName = "Rathnavalli_Sathyan_" + downloadCount + ".png";
+  downloadCount++;
 
   canvas.toBlob((blob) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
 
     a.href = url;
-    a.download = uniqueName;
+    a.download = fileName;
 
     a.dispatchEvent(new MouseEvent("click", { 
       bubbles: true, 
