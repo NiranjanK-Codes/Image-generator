@@ -21,7 +21,6 @@ body {
   display: inline-block;
 }
 
-/* UPLOAD BUTTONS ARE VISIBLE AGAIN */
 .upload-row {
   position: absolute;
   z-index: 10;
@@ -46,7 +45,7 @@ body {
 
 input[type="file"] { display: none; }
 
-/* Canvas full resolution internally, scaled visually */
+/* HQ rendering, scaled only for visual preview */
 canvas {
   width: 95%;
   height: auto;
@@ -87,7 +86,6 @@ canvas {
 
 <div class="canvas-wrapper" id="canvasWrapper">
 
-  <!-- Upload row stays on the face position again -->
   <div class="upload-row" id="uploadRow">
     <label class="upload-btn" for="imgUploadInput">📁 Upload</label>
     <button id="cameraBtn">📸 Camera</button>
@@ -113,11 +111,11 @@ const canvasWrapper = document.getElementById("canvasWrapper");
 
 let downloadCount = 1;
 
-/* POSTER */
+/* POSTER IMAGE */
 const poster = new Image();
 poster.src = "WhatsApp Image 2025-11-22 at 07.34.17_e0b8aebb.jpg";
 
-/* ORIGINAL poster frame coords (HQ) */
+/* FRAME ON POSTER (HQ COORDINATES) */
 const frame = {
   x: 371,
   y: 1340,
@@ -130,32 +128,35 @@ let posX = 0, posY = 0;
 let isDragging = false;
 let startX = 0, startY = 0;
 
-/* Maps HQ coordinates → displayed coordinates */
+/* Convert poster HQ coords → visible canvas coords */
 function mapToDisplayed(x, y) {
   const displayWidth = canvas.clientWidth;
   const factor = displayWidth / canvas.width;
   return { dx: x * factor, dy: y * factor };
 }
 
+/* Center the upload buttons on the circle */
+function updateUploadRowPosition() {
+  const p = mapToDisplayed(frame.x, frame.y);
+
+  const buttons = uploadRow.getBoundingClientRect();
+  const wrapperRect = canvasWrapper.getBoundingClientRect();
+
+  uploadRow.style.left = p.dx - buttons.width / 2 + "px";
+  uploadRow.style.top  = p.dy - buttons.height / 2 + "px";
+}
+
 poster.onload = () => {
   const w = poster.width;
   const h = poster.height;
 
-  /* INTERNAL resolution = full HQ */
+  /* Full-resolution canvas */
   canvas.width = w;
   canvas.height = h;
 
   draw();
-
-  /* After drawing, position uploadRow correctly */
   updateUploadRowPosition();
 };
-
-function updateUploadRowPosition() {
-  const p = mapToDisplayed(frame.x, frame.y);
-  uploadRow.style.left = p.dx + "px";
-  uploadRow.style.top = p.dy + "px";
-}
 
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -174,6 +175,7 @@ function draw() {
       frame.img.width * imgScale,
       frame.img.height * imgScale
     );
+
     ctx.restore();
   }
 
@@ -193,18 +195,20 @@ function handleImageSelect(e){
   const img = new Image();
   img.onload = () => {
     frame.img = img;
+
     imgScale = 1;
     posX = frame.x - img.width/2;
     posY = frame.y - img.height/2;
+
     sizeSlider.value = 1;
     draw();
   };
-  img.src = URL.createObjectURL(file);
 
+  img.src = URL.createObjectURL(file);
   downloadCount = 1;
 }
 
-/* Drag */
+/* Touch drag */
 canvas.addEventListener("touchstart", e=>{
   if(!frame.img) return;
   if(e.touches.length === 1){
@@ -213,6 +217,7 @@ canvas.addEventListener("touchstart", e=>{
     startY = e.touches[0].clientY;
   }
 });
+
 canvas.addEventListener("touchmove", e=>{
   if(!frame.img || !isDragging) return;
   e.preventDefault();
@@ -222,6 +227,7 @@ canvas.addEventListener("touchmove", e=>{
   startY = e.touches[0].clientY;
   draw();
 });
+
 canvas.addEventListener("touchend", ()=> isDragging = false);
 
 /* Scale */
@@ -259,10 +265,12 @@ resetBtn.addEventListener("click", () => {
   imgScale = 1;
   sizeSlider.value = 1;
   downloadCount = 1;
+
   draw();
+  updateUploadRowPosition();
 });
 
-/* Fix upload row when screen rotates/resizes */
+/* Reposition buttons on resize */
 window.addEventListener("resize", updateUploadRowPosition);
 </script>
 
