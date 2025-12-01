@@ -48,9 +48,11 @@ body {
 
 input[type="file"] { display: none; }
 
+/* Canvas shows scaled-down PREVIEW only; render stays HQ */
 canvas {
+  width: 95%;
+  height: auto;
   display: block;
-  max-width: 100%;
   touch-action: none;
   background: #eee;
   cursor: grab;
@@ -121,7 +123,6 @@ const frame = {
   img: null
 };
 
-let scaleFactor = 1;
 let imgScale = 1;
 let posX = 0, posY = 0;
 let isDragging = false;
@@ -131,13 +132,15 @@ poster.onload = () => {
   const w = poster.width;
   const h = poster.height;
 
-  scaleFactor = Math.min(window.innerWidth * 0.95 / w, 1);
-  canvas.width = w * scaleFactor;
-  canvas.height = h * scaleFactor;
+  /* HQ output: use FULL poster resolution */
+  canvas.width = w;
+  canvas.height = h;
 
-  frame.x *= scaleFactor;
-  frame.y *= scaleFactor;
-  frame.r *= scaleFactor;
+  /* scale frame to match HQ canvas */
+  const factor = 1; // now full size, no shrinking
+  frame.x *= factor;
+  frame.y *= factor;
+  frame.r *= factor;
 
   uploadRow.style.left = frame.x + "px";
   uploadRow.style.top = frame.y + "px";
@@ -147,7 +150,9 @@ poster.onload = () => {
 
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(poster,0,0,canvas.width,canvas.height);
+
+  /* Draw poster HQ */
+  ctx.drawImage(poster, 0, 0);
 
   if(frame.img){
     ctx.save();
@@ -155,17 +160,19 @@ function draw() {
     ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
     ctx.clip();
 
+    /* Draw uploaded image at FULL resolution */
     ctx.drawImage(
       frame.img,
       posX,
       posY,
-      frame.img.width * imgScale * scaleFactor,
-      frame.img.height * imgScale * scaleFactor
+      frame.img.width * imgScale,
+      frame.img.height * imgScale
     );
 
     ctx.restore();
   }
 
+  /* white border around circle */
   ctx.beginPath();
   ctx.arc(frame.x, frame.y, frame.r, 0, Math.PI*2);
   ctx.lineWidth = 2;
@@ -183,8 +190,11 @@ function handleImageSelect(e){
   img.onload = () => {
     frame.img = img;
     imgScale = 1;
-    posX = frame.x - (img.width*scaleFactor)/2;
-    posY = frame.y - (img.height*scaleFactor)/2;
+
+    /* center image over frame */
+    posX = frame.x - img.width/2;
+    posY = frame.y - img.height/2;
+
     sizeSlider.value = 1;
     draw();
   };
@@ -193,6 +203,7 @@ function handleImageSelect(e){
   downloadCount = 1;
 }
 
+/* Drag */
 canvas.addEventListener("touchstart", e=>{
   if(!frame.img) return;
   if(e.touches.length === 1){
@@ -201,7 +212,6 @@ canvas.addEventListener("touchstart", e=>{
     startY = e.touches[0].clientY;
   }
 });
-
 canvas.addEventListener("touchmove", e=>{
   if(!frame.img || !isDragging) return;
   e.preventDefault();
@@ -211,24 +221,24 @@ canvas.addEventListener("touchmove", e=>{
   startY = e.touches[0].clientY;
   draw();
 });
-
 canvas.addEventListener("touchend", ()=>{
   isDragging = false;
 });
 
+/* Scale */
 sizeSlider.addEventListener("input", ()=>{
   imgScale = parseFloat(sizeSlider.value);
   draw();
 });
 
+/* Upload handlers */
 document.getElementById("imgUploadInput").addEventListener("change", handleImageSelect);
 document.getElementById("imgCameraInput").addEventListener("change", handleImageSelect);
-
 document.getElementById("cameraBtn").addEventListener("click", ()=>{
   document.getElementById("imgCameraInput").click();
 });
 
-/* UPDATED DOWNLOAD — NOW ZERO POPUP */
+/* Download HQ */
 document.getElementById("downloadBtn").addEventListener("click", () => {
   const fileName =
     "Rathnavalli_Sathyan_" + downloadCount + "_" + Date.now() + ".png";
@@ -252,6 +262,7 @@ document.getElementById("downloadBtn").addEventListener("click", () => {
   }, "image/png");
 });
 
+/* Reset */
 document.getElementById("resetBtn").addEventListener("click", () => {
   frame.img = null;
   uploadRow.style.display = "flex";
