@@ -138,7 +138,6 @@ poster.onload = () => {
   frame.y *= scaleFactor;
   frame.r *= scaleFactor;
 
-  // Center upload controls on circular frame
   uploadRow.style.left = frame.x + "px";
   uploadRow.style.top = frame.y + "px";
 
@@ -226,21 +225,24 @@ document.getElementById("cameraBtn").addEventListener("click", ()=>{
   document.getElementById("imgCameraInput").click();
 });
 
-/* FIXED DOWNLOAD FUNCTION — NO MORE "Download again" */
-document.getElementById("downloadBtn").addEventListener("click", ()=>{
-  canvas.toBlob((blob)=>{
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "Rathnavalli_Sathyan_Poster.png";
+/* UPDATED DOWNLOAD FUNCTION — unique filename every time */
+document.getElementById("downloadBtn").addEventListener("click", () => {
+  const uniqueName = "Rathnavalli_Sathyan_Poster_" + Date.now() + ".png";
 
-    link.dispatchEvent(new MouseEvent("click", { 
+  canvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = uniqueName;
+
+    a.dispatchEvent(new MouseEvent("click", { 
       bubbles: true, 
       cancelable: true, 
       view: window 
     }));
 
-    setTimeout(()=> URL.revokeObjectURL(url), 500);
+    setTimeout(() => URL.revokeObjectURL(url), 500);
   }, "image/png");
 });
 </script>
